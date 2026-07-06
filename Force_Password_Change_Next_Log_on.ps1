@@ -1,3 +1,4 @@
+#This will force the user to reset their password on their next login but also will revoke any current active sessions.
 Import-Module Microsoft.Graph.Users
 
 #if using commerical or GCC, remove -Environment USGov
@@ -25,6 +26,7 @@ foreach ($Row in $Users) {
         }
 
         # Revoke sessions/tokens
+        #if you wish to not revoke the session, take this line out
         Revoke-MgUserSignInSession -UserId $UserId
 
         Write-Host "SUCCESS: Password reset forced and sessions revoked for $UserId" -ForegroundColor Green
