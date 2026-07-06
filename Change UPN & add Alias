@@ -1,0 +1,46 @@
+# ===========================================================
+# Update Username (UPN) Script - GCC High
+# What this does:
+#   1. Connects to Microsoft Graph (GCC High / USGov)
+#   2. Reads a CSV with Email, FirstName, LastName columns
+#   3. Builds a new UPN like First.Last@<domain>
+#   4. Updates the user's UPN (login/username)
+# ===========================================================
+
+# --- Settings you may need to change ---
+$CsvPath   = "filepath.csv"
+$NewDomain = "New Domain name"
+
+# --- Step 1: Disconnect and reconnect to Microsoft Graph ---
+#Disconnect-MgGraph -ErrorAction SilentlyContinue
+Connect-MgGraph -Environment USGov -Scopes "User.ReadWrite.All" #Remove -Environment USGov if in GCC or Commericial enviroments
+
+# --- Step 2: Load the CSV ---
+$users = Import-Csv -Path $CsvPath
+
+# --- Step 3: Loop through each person in the CSV ---
+foreach ($user in $users) {
+
+    $oldEmail  = $user.Email
+    $firstName = $user.FirstName
+    $lastName  = $user.LastName
+
+    # If last name has a space or dash, only keep the part before it
+    # Example: "Smith-Jones" becomes "Smith"
+    if ($lastName -match "^[^\s\-]+") {
+        $lastName = $matches[0]
+    }
+
+    # Build the new UPN
+    $newUPN = "$firstName.$lastName@$NewDomain"
+
+    # --- Step 4: Update the username (UPN) ---
+    try {
+        Update-MgUser -UserId $oldEmail -UserPrincipalName $newUPN -ErrorAction Stop
+
+        Write-Host "SUCCESS: $oldEmail -> $newUPN" -ForegroundColor Green
+    }
+    catch {
+        Write-Host "FAILED: $oldEmail -> $newUPN - $($_.Exception.Message)" -ForegroundColor Red
+    }
+}
